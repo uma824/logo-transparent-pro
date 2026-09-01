@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Logo Transparent Pro</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, system-ui, -apple-system, Segoe UI, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: #080b12; color: #f5f7fb; }
+    .wrap { width: min(1120px, 92vw); margin: 0 auto; padding: 48px 0 72px; }
+    header { text-align: center; margin-bottom: 32px; }
+    h1 { margin: 0 0 10px; font-size: clamp(32px, 6vw, 64px); letter-spacing: -2px; }
+    .sub { color: #aab2c1; font-size: 17px; }
+    .drop {
+      border: 1px dashed #4c566a; border-radius: 24px; padding: 48px 24px;
+      background: #0d111b; text-align: center; cursor: pointer; transition: .2s;
+    }
+    .drop:hover, .drop.drag { border-color: #fff; transform: translateY(-2px); }
+    .icon { font-size: 52px; margin-bottom: 10px; }
+    button, .download {
+      border: 0; border-radius: 12px; padding: 13px 18px; font-weight: 700;
+      background: #fff; color: #090b10; cursor: pointer; text-decoration: none; display: inline-block;
+    }
+    input { display: none; }
+    .hint { color: #7f899a; margin-top: 10px; font-size: 13px; }
+    .status { min-height: 28px; text-align: center; margin: 18px 0; color: #b9c2d1; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .card { background: #0d111b; border: 1px solid #1b2332; border-radius: 18px; overflow: hidden; }
+    .card h3 { margin: 0; padding: 14px 16px; font-size: 14px; color: #aab2c1; }
+    .preview {
+      min-height: 360px; display: grid; place-items: center; padding: 24px;
+      background: #151a25;
+    }
+    .checker {
+      background-image:
+        linear-gradient(45deg,#2a3140 25%,transparent 25%),
+        linear-gradient(-45deg,#2a3140 25%,transparent 25%),
+        linear-gradient(45deg,transparent 75%,#2a3140 75%),
+        linear-gradient(-45deg,transparent 75%,#2a3140 75%);
+      background-size: 24px 24px;
+      background-position: 0 0,0 12px,12px -12px,-12px 0;
+    }
+    img { max-width: 100%; max-height: 520px; object-fit: contain; }
+    .actions { display:flex; justify-content:center; gap:10px; margin-top:20px; }
+    .small { font-size: 12px; color:#788396; text-align:center; margin-top:18px; line-height:1.5; }
+    @media(max-width: 760px){ .grid{grid-template-columns:1fr;} .preview{min-height:260px;} }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Make Any Logo Transparent</h1>
+    <div class="sub">Upload a logo → AI removes the background → download a transparent PNG.</div>
+  </header>
+
+  <label id="drop" class="drop" for="file">
+    <div class="icon">✦</div>
+    <div><button type="button">Choose Logo</button></div>
+    <div class="hint">PNG, JPG/JPEG, WEBP or SVG · max 15 MB</div>
+    <input id="file" type="file" accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml">
+  </label>
+
+  <div id="status" class="status"></div>
+
+  <div id="results" class="grid" hidden>
+    <section class="card">
+      <h3>Original</h3>
+      <div class="preview"><img id="before"></div>
+    </section>
+    <section class="card">
+      <h3>Transparent PNG</h3>
+      <div class="preview checker"><img id="after"></div>
+    </section>
+  </div>
+
+  <div class="actions">
+    <a id="download" class="download" hidden>Download transparent PNG</a>
+  </div>
+
+  <div class="small">
+    For difficult logos, automatic AI segmentation can still need manual refinement.
+    The backend intentionally preserves the source pixels and primarily changes alpha.
+  </div>
+</div>
+
+<script>
+const fileInput = document.querySelector('#file');
+const drop = document.querySelector('#drop');
+const status = document.querySelector('#status');
+const results = document.querySelector('#results');
+const before = document.querySelector('#before');
+const after = document.querySelector('#after');
+const download = document.querySelector('#download');
+
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
+drop.addEventListener('drop', e => {
+  e.preventDefault(); drop.classList.remove('drag');
+  if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) processFile(fileInput.files[0]);
+});
+
+async function processFile(file) {
+  if (!file.type.match(/image\/(png|jpeg|webp|svg\+xml)/)) {
+    status.textContent = 'Please upload PNG, JPG/JPEG, WEBP or SVG.';
+    return;
+  }
+  if (file.size > 15 * 1024 * 1024) {
+    status.textContent = 'Maximum file size is 15 MB.';
+    return;
+  }
+
+  before.src = URL.createObjectURL(file);
+  results.hidden = false;
+  download.hidden = true;
+  status.textContent = 'Processing… the first image may take longer while the AI model loads.';
+
+  const fd = new FormData();
+  fd.append('file', file);
+
+  try {
+    const response = await fetch('/api/remove', { method: 'POST', body: fd });
+    if (!response.ok) {
+      let message = 'Processing failed.';
+      try { message = (await response.json()).detail || message; } catch {}
+      throw new Error(message);
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    after.src = url;
+    download.href = url;
+    download.download = (file.name.replace(/\.[^.]+$/, '') || 'logo') + '-transparent.png';
+    download.hidden = false;
+    status.textContent = 'Done — transparent PNG ready.';
+  } catch (err) {
+    status.textContent = err.message || 'Processing failed.';
+  }
+}
+</script>
+</body>
+</html>

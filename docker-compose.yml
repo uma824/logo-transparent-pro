@@ -1,0 +1,8 @@
+services:
+  logo-app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      REMBG_MODEL: birefnet-general
+    restart: unless-stopped

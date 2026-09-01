@@ -1,0 +1,9 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+Pillow>=10.4
+numpy>=1.26
+opencv-python-headless>=4.10
+rembg>=2.0.67
+onnxruntime>=1.19
+cairosvg>=2.7

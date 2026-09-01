@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: logo-transparent-pro
+    runtime: docker
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: REMBG_MODEL
+        value: birefnet-general
